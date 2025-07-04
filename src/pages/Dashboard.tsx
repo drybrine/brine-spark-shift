@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Package, TrendingUp, AlertTriangle, Plus } from "lucide-react";
+import { LogOut, Package, TrendingUp, AlertTriangle, Plus, Scan } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -125,10 +125,16 @@ export default function Dashboard() {
               Selamat datang, {adminUser?.full_name || adminUser?.username}
             </p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Keluar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate('/scanner')}>
+              <Scan className="h-4 w-4 mr-2" />
+              Scanner ESP32
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Keluar
+            </Button>
+          </div>
         </div>
       </header>
 
