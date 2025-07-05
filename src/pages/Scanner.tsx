@@ -30,6 +30,8 @@ export default function Scanner() {
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [connectedDevices, setConnectedDevices] = useState<string[]>([]);
+  const [lastActivity, setLastActivity] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if admin is logged in
@@ -121,9 +123,20 @@ export default function Scanner() {
     if (!error && data) {
       setScannedItems(prev => [data, ...prev.slice(0, 19)]);
       
+      // Update device status
+      if (data.esp32_device_id) {
+        setConnectedDevices(prev => {
+          if (!prev.includes(data.esp32_device_id)) {
+            return [...prev, data.esp32_device_id];
+          }
+          return prev;
+        });
+        setLastActivity(new Date().toISOString());
+      }
+      
       toast({
         title: "Barcode Terdeteksi!",
-        description: `${data.products.name} berhasil dipindai`,
+        description: `${data.products.name} berhasil dipindai dari ${data.esp32_device_id}`,
       });
     }
   };
@@ -220,28 +233,63 @@ export default function Scanner() {
               </CardContent>
             </Card>
 
-            {/* Connection Status */}
+            {/* Device Status */}
             <Card>
               <CardHeader>
-                <CardTitle>Status Koneksi</CardTitle>
+                <CardTitle>Status Device ESP32</CardTitle>
+                <CardDescription>
+                  Monitor status koneksi device scanner
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-center p-8">
-                  {isConnected ? (
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Wifi className="h-8 w-8 text-green-600" />
-                      </div>
-                      <h3 className="text-lg font-medium text-green-800">Terhubung</h3>
-                      <p className="text-sm text-green-600">Real-time monitoring aktif</p>
+                <div className="space-y-4">
+                  {/* System Status */}
+                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">System Status</p>
+                      <p className="font-medium text-green-600">
+                        {isConnected ? 'Real-time Active' : 'Standby'}
+                      </p>
                     </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <WifiOff className="h-8 w-8 text-red-600" />
+                    <div className={`h-3 w-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                  </div>
+
+                  {/* Connected Devices */}
+                  <div>
+                    <p className="text-sm font-medium mb-2">Connected Devices ({connectedDevices.length})</p>
+                    {connectedDevices.length > 0 ? (
+                      <div className="space-y-2">
+                        {connectedDevices.map(deviceId => (
+                          <div key={deviceId} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                              <span className="text-sm font-mono">{deviceId}</span>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">GM67</Badge>
+                          </div>
+                        ))}
                       </div>
-                      <h3 className="text-lg font-medium text-red-800">Tidak Terhubung</h3>
-                      <p className="text-sm text-red-600">Menunggu koneksi ESP32</p>
+                    ) : (
+                      <div className="p-4 text-center text-muted-foreground">
+                        <WifiOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Tidak ada device terhubung</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Last Activity */}
+                  {lastActivity && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Aktivitas Terakhir:</strong><br />
+                        {new Intl.DateTimeFormat('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        }).format(new Date(lastActivity))}
+                      </p>
                     </div>
                   )}
                 </div>
