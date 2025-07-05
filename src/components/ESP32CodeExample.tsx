@@ -6,18 +6,20 @@ import { toast } from "@/hooks/use-toast";
 
 export function ESP32CodeExample() {
   const esp32Code = `/*
- * StokManager ESP32 Barcode Scanner
+ * StokManager ESP32 + GM67 Barcode Scanner
+ * Optimized untuk GM67 Barcode Scanner Module
  * 
  * Hardware yang dibutuhkan:
- * - ESP32 Development Board
- * - Barcode Scanner Module (GM65/GM66 atau sejenisnya)
- * - Koneksi WiFi
+ * - ESP32 Development Board (DOIT ESP32 DEVKIT V1)
+ * - GM67 Barcode Scanner Module
+ * - Koneksi WiFi stabil
  * 
- * Wiring:
- * Scanner TX -> ESP32 GPIO16 (RX2)
- * Scanner RX -> ESP32 GPIO17 (TX2)
- * Scanner VCC -> ESP32 3.3V
- * Scanner GND -> ESP32 GND
+ * Wiring GM67 ke ESP32:
+ * GM67 VCC (Merah) -> ESP32 5V
+ * GM67 GND (Hitam) -> ESP32 GND
+ * GM67 TX (Kuning) -> ESP32 GPIO16 (RX2)
+ * GM67 RX (Biru) -> ESP32 GPIO17 (TX2)
+ * GM67 Trigger (Opsional) -> ESP32 GPIO18
  */
 
 #include <WiFi.h>
