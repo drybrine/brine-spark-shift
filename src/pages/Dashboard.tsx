@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Package, TrendingUp, AlertTriangle, Plus, Scan } from "lucide-react";
+import { LogOut, Package, TrendingUp, AlertTriangle, Plus, Scan, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { ProductForm } from "@/components/ProductForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 
 interface Product {
   id: string;
@@ -30,6 +32,17 @@ export default function Dashboard() {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isProductFormOpen, setIsProductFormOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    product: Product | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    product: null,
+    isLoading: false,
+  });
 
   useEffect(() => {
     // Check if admin is logged in
@@ -99,6 +112,63 @@ export default function Dashboard() {
     return products.reduce((total, product) => {
       return total + (product.price || 0) * product.quantity;
     }, 0);
+  };
+
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setIsProductFormOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsProductFormOpen(true);
+  };
+
+  const handleDeleteProduct = (product: Product) => {
+    setDeleteDialog({
+      isOpen: true,
+      product,
+      isLoading: false,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.product) return;
+
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', deleteDialog.product.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: "Produk berhasil dihapus",
+      });
+
+      await fetchProducts();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Gagal menghapus produk",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialog({
+        isOpen: false,
+        product: null,
+        isLoading: false,
+      });
+    }
+  };
+
+  const handleFormSuccess = () => {
+    fetchProducts();
   };
 
   if (loading) {
@@ -191,7 +261,7 @@ export default function Dashboard() {
           <TabsContent value="products" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Daftar Produk</h2>
-              <Button>
+              <Button onClick={handleAddProduct}>
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Produk
               </Button>
@@ -211,18 +281,36 @@ export default function Dashboard() {
                         <p className="text-sm text-muted-foreground">{product.description}</p>
                       )}
                     </div>
-                    <div className="text-right space-y-1">
-                      <div className="text-lg font-semibold">
-                        Stok: {product.quantity}
+                    <div className="flex items-center gap-4">
+                      <div className="text-right space-y-1">
+                        <div className="text-lg font-semibold">
+                          Stok: {product.quantity}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatCurrency(product.price)}
+                        </div>
+                        {product.min_quantity && product.quantity <= product.min_quantity && (
+                          <Badge variant="destructive" className="text-xs">
+                            Stok Rendah
+                          </Badge>
+                        )}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatCurrency(product.price)}
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditProduct(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteProduct(product)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      {product.min_quantity && product.quantity <= product.min_quantity && (
-                        <Badge variant="destructive" className="text-xs">
-                          Stok Rendah
-                        </Badge>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -236,7 +324,7 @@ export default function Dashboard() {
                     <p className="text-muted-foreground mb-4">
                       Mulai dengan menambahkan produk pertama Anda
                     </p>
-                    <Button>
+                    <Button onClick={handleAddProduct}>
                       <Plus className="h-4 w-4 mr-2" />
                       Tambah Produk
                     </Button>
@@ -288,6 +376,22 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ProductForm
+        isOpen={isProductFormOpen}
+        onClose={() => setIsProductFormOpen(false)}
+        onSuccess={handleFormSuccess}
+        product={editingProduct}
+      />
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, product: null, isLoading: false })}
+        onConfirm={confirmDelete}
+        title="Hapus Produk"
+        description={`Apakah Anda yakin ingin menghapus produk "${deleteDialog.product?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        isLoading={deleteDialog.isLoading}
+      />
     </div>
   );
 }
